@@ -1,0 +1,20 @@
+{
+  "kind": "attempt-review",
+  "expectedNoFileChanges": true,
+  "expectedCheckToRemainFailing": true,
+  "forbiddenToolUse": ["edit", "write", "patch"],
+  "requiredVisibleTextGroups": [
+    {
+      "name": "feedback",
+      "any": ["feedback", "issue", "problem", "wrong", "failing", "fails"]
+    },
+    {
+      "name": "evidence",
+      "any": ["check", "test", "evidence", "output", "observed"]
+    },
+    {
+      "name": "retry",
+      "any": ["retry", "revise", "fix", "update", "change", "next attempt"]
+    }
+  ]
+}

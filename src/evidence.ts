@@ -5,8 +5,11 @@ import type { CoreQuestionId, CoreQuestionResult, EvidenceInput } from "./types.
 
 export async function writeEvidenceBundle(input: EvidenceInput): Promise<void> {
   await mkdir(path.join(input.config.runPath, "raw"), { recursive: true });
+  await mkdir(path.join(input.config.runPath, "behavior"), { recursive: true });
+  await writeInputArtifacts(input);
   await writeRawPlaceholders(input);
   await writeChangeArtifacts(input);
+  await writeBehaviorArtifacts(input);
   await writeSummary(input);
 }
 
@@ -41,6 +44,18 @@ function mergedQuestions(input: EvidenceInput): Record<CoreQuestionId, CoreQuest
     `Evidence bundle written to ${input.config.runPath}.`,
   );
   return questions;
+}
+
+async function writeInputArtifacts(input: EvidenceInput): Promise<void> {
+  if (input.steeringText) {
+    await writeFile(path.join(input.config.runPath, "input", "steering.md"), input.steeringText);
+  }
+  if (input.behaviorExpectation) {
+    await writeFile(
+      path.join(input.config.runPath, "input", "behavior.json"),
+      `${JSON.stringify(input.behaviorExpectation, null, 2)}\n`,
+    );
+  }
 }
 
 async function writeRawPlaceholders(input: EvidenceInput): Promise<void> {
@@ -83,6 +98,20 @@ async function writeRawPlaceholders(input: EvidenceInput): Promise<void> {
 
   const lines = input.openCode?.events.map((event) => JSON.stringify(event)).join("\n") ?? "";
   await writeFile(path.join(rawDir, "opencode-events.jsonl"), lines ? `${lines}\n` : "");
+}
+
+async function writeBehaviorArtifacts(input: EvidenceInput): Promise<void> {
+  await writeFile(
+    path.join(input.config.runPath, "behavior", "evaluation.json"),
+    `${JSON.stringify(
+      input.behaviorEvaluation ?? {
+        status: "not configured",
+        reason: "No behavior.json expectation was provided for this assignment.",
+      },
+      null,
+      2,
+    )}\n`,
+  );
 }
 
 async function writeChangeArtifacts(input: EvidenceInput): Promise<void> {
@@ -130,6 +159,29 @@ async function writeSummary(input: EvidenceInput): Promise<void> {
     input.openCode?.stoppedForHumanAction
       ? `Required: ${input.openCode.stoppedForHumanAction}`
       : "None recorded by the harness.",
+    "",
+    "## Behavior Evaluation",
+    "",
+    input.behaviorEvaluation
+      ? `- Kind: \`${input.behaviorEvaluation.kind}\``
+      : "- Kind: `not configured`",
+    input.behaviorEvaluation
+      ? `- Status: \`${input.behaviorEvaluation.status}\``
+      : "- Status: `not configured`",
+    ...(input.behaviorEvaluation
+      ? input.behaviorEvaluation.checks.map((check) => {
+          return `- ${check.passed ? "PASS" : "FAIL"} \`${check.name}\`: ${escapeTable(check.detail)}`;
+        })
+      : []),
+    ...(input.behaviorEvaluation && input.behaviorEvaluation.warnings.length > 0
+      ? [
+          "",
+          "Warnings:",
+          ...input.behaviorEvaluation.warnings.map((warning) => {
+            return `- \`${warning.name}\`: ${escapeTable(warning.detail)}`;
+          }),
+        ]
+      : []),
     "",
   ];
 

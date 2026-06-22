@@ -46,3 +46,16 @@ local harness -> OpenCode SDK/server -> assignment attempt -> evidence bundle
 
 Not verified here: provider portability, teacher dashboards, rubric gates,
 cheating resistance, or proof of independent understanding.
+
+## Attempt Review Probe
+
+The harness also includes a behavior probe for review-before-retry feedback:
+
+```bash
+npm run harness -- run examples/attempt-review-assignment
+```
+
+This probe does not try to prevent the model from knowing the solution. It tests
+whether the harness can steer OpenCode into reviewing a student's current
+attempt, leaving files unchanged, keeping the failing check failing, and writing
+feedback/evidence/retry signals into the run bundle.

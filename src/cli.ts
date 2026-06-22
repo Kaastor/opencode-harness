@@ -5,6 +5,7 @@ import path from "node:path";
 import { runCommand } from "./command.js";
 import { runAssignmentCheck, writeCheckArtifacts } from "./checks.js";
 import { writeEvidenceBundle } from "./evidence.js";
+import { evaluateBehavior } from "./behavior-eval.js";
 import { checkOpenCodeBinary, runOpenCodeSession } from "./opencode-session.js";
 import { baseQuestionResults, questionResult } from "./questions.js";
 import { collectAttemptEvidence, prepareAttempt } from "./attempt.js";
@@ -23,7 +24,7 @@ async function main(): Promise<void> {
   validateAssignmentShape(assignment);
 
   await mkdir(path.join(repoRoot, "runs"), { recursive: true });
-  const { config, taskText } = await prepareAttempt(assignment, repoRoot);
+  const { config, taskText, steeringText, behaviorExpectation } = await prepareAttempt(assignment, repoRoot);
 
   const git = await runCommand("git", ["--version"], repoRoot);
   const opencode = await checkOpenCodeBinary(repoRoot);
@@ -52,7 +53,7 @@ async function main(): Promise<void> {
     };
     questions = markPreconditionMissing("OpenCode CLI is not available.");
   } else {
-    openCode = await runOpenCodeSession(config, taskText);
+    openCode = await runOpenCodeSession(config, taskText, steeringText);
     if (openCode.questions) {
       questions = { ...questions, ...openCode.questions };
     }
@@ -62,10 +63,21 @@ async function main(): Promise<void> {
     ? await runAssignmentCheck("after-agent", config.checksPath, config.attemptPath)
     : undefined;
   const { gitDiff, gitStatus } = await collectAttemptEvidence(config.runPath);
+  const behaviorEvaluation = behaviorExpectation
+    ? evaluateBehavior({
+        expectation: behaviorExpectation,
+        openCode,
+        gitStatus,
+        afterCheck,
+      })
+    : undefined;
   await writeCheckArtifacts(config.runPath, afterCheck ? [beforeCheck, afterCheck] : [beforeCheck]);
   await writeEvidenceBundle({
     config,
     taskText,
+    steeringText,
+    behaviorExpectation,
+    behaviorEvaluation,
     preflight: { git, opencode },
     beforeCheck,
     afterCheck,

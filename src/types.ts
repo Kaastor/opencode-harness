@@ -39,10 +39,39 @@ export type HarnessConfig = {
   taskPath: string;
   starterPath: string;
   checksPath: string;
+  steeringPath?: string;
+  behaviorPath?: string;
   baselinePath: string;
   attemptPath: string;
   runId: string;
   runPath: string;
+};
+
+export type BehaviorExpectation = {
+  kind: "attempt-review";
+  expectedNoFileChanges?: boolean;
+  expectedCheckToRemainFailing?: boolean;
+  forbiddenToolUse?: Array<string>;
+  requiredVisibleTextGroups?: Array<{
+    name: string;
+    any: Array<string>;
+  }>;
+};
+
+export type BehaviorEvaluation = {
+  kind: BehaviorExpectation["kind"];
+  status: "observed" | "failed" | "not configured";
+  checks: Array<{
+    name: string;
+    passed: boolean;
+    detail: string;
+  }>;
+  warnings: Array<{
+    name: string;
+    detail: string;
+  }>;
+  studentVisibleText: string;
+  rawAssistantText: string;
 };
 
 export type OpenCodeRunResult = {
@@ -61,6 +90,9 @@ export type OpenCodeRunResult = {
 export type EvidenceInput = {
   config: HarnessConfig;
   taskText: string;
+  steeringText?: string;
+  behaviorExpectation?: BehaviorExpectation;
+  behaviorEvaluation?: BehaviorEvaluation;
   preflight: {
     git: CommandResult;
     opencode: CommandResult;

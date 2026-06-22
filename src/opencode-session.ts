@@ -12,6 +12,7 @@ export async function checkOpenCodeBinary(repoRoot: string) {
 export async function runOpenCodeSession(
   config: HarnessConfig,
   taskText: string,
+  steeringText?: string,
 ): Promise<OpenCodeRunResult> {
   const events: Array<unknown> = [];
   const questions: OpenCodeRunResult["questions"] = {};
@@ -88,6 +89,7 @@ export async function runOpenCodeSession(
       path: { id: session.data.id },
       query: { directory: config.attemptPath },
       body: {
+        system: steeringText,
         parts: [{ type: "text", text: promptText }],
       },
     });
@@ -164,8 +166,7 @@ function buildTaskPrompt(taskText: string): string {
   return [
     "You are running inside the opencode-harness behavior-loop probe.",
     "Work only in the current assignment attempt directory.",
-    "Fix the task described below with the smallest useful code change.",
-    "Do not modify check files.",
+    "Follow the task instructions below.",
     "",
     taskText,
   ].join("\n");
